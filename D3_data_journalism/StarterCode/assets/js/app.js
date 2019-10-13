@@ -4,7 +4,6 @@
 
 
 
-
 // Define SVG area dimensions
 var svgWidth = 960;
 var svgHeight = 500;
@@ -22,7 +21,7 @@ var chartWidth = svgWidth - margin.left - margin.right;
 var chartHeight = svgHeight - margin.top - margin.bottom;
 
 // Select body, append SVG area to it, and set its dimensions
-var svg = d3.select("body")
+var svg = d3.select("#scatter")
   .append("svg")
   .attr("width", svgWidth)
   .attr("height", svgHeight);
@@ -31,11 +30,9 @@ var svg = d3.select("body")
 var chartGroup = svg.append("g")
   .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-// Configure a parseTime function which will return a new Date object from a string
-var parseTime = d3.timeParse("%B");
 
 // Load data from miles-walked-this-month.csv
-d3.csv("/data/data.csv").then(function(csvdata) {
+d3.csv("assets/data/data.csv").then(function(csvdata) {
 
     csvdata.forEach(function(data) {
         data.poverty = +data.poverty;
@@ -44,19 +41,19 @@ d3.csv("/data/data.csv").then(function(csvdata) {
     });
 
     var xLinearScale = d3.scaleLinear()
-        domain([7, d3.max(csvData, d => d.poverty)])
-        .range([0, width]);
+        .domain([7, d3.max(csvdata, d => d.poverty)])
+        .range([0, chartWidth]);
 
     var yLinearScale = d3.scaleLinear()
-        .domain([0, d3.max(csvData, d => d.healthcare)])
-        .range([height, 0]);
+        .domain([0, d3.max(csvdata, d => d.healthcare)])
+        .range([chartHeight, 0]);
 
     var bottomAxis = d3.axisBottom(xLinearScale);
 
     var leftAxis = d3.axisLeft(yLinearScale);
 
     chartGroup.append("g")
-    .attr("transform", `translate(0, ${height})`)
+    .attr("transform", `translate(0, ${chartHeight})`)
     .call(bottomAxis);
 
     chartGroup.append("g")
@@ -71,39 +68,60 @@ d3.csv("/data/data.csv").then(function(csvdata) {
     .attr("r", "10")
     .attr("fill", "green")
 
-
-});
-
-
-
-
-
-
-
-
-//   // Configure a drawLine function which will use our scales to plot the line's points
-//   var drawLine = d3
-//     .line()
-//     .x(data => xTimeScale(data.date))
-//     .y(data => yLinearScale(data.miles));
-
-//   // Append an SVG path and plot its points using the line function
-//   chartGroup.append("path")
-//     // The drawLine function returns the instructions for creating the line for milesData
-//     .attr("d", drawLine(milesData))
-//     .classed("line", true);
-
-//   // Append an SVG group element to the SVG area, create the left axis inside of it
-//   chartGroup.append("g")
-//     .classed("axis", true)
-//     .call(leftAxis);
-
-//   // Append an SVG group element to the SVG area, create the bottom axis inside of it
-//   // Translate the bottom axis to the bottom of the page
-//   chartGroup.append("g")
-//     .classed("axis", true)
-//     .attr("transform", "translate(0, " + chartHeight + ")")
-//     .call(bottomAxis);
 // });
 
+
+
+
+
+
+    // Step 6: Initialize tool tip
+    // ==============================
+    var toolTip = d3.tip()
+      .attr("class", "tooltip")
+      .offset([80, -60])
+      .html(function(d) {
+        return (`${d.abbr}<br>Poverty: ${d.poverty}<br>Healthcare: ${d.healthcare}`);
+      });
+
+    // Step 7: Create tooltip in the chart
+    // ==============================
+    chartGroup.call(toolTip);
+
+    // Step 8: Create event listeners to display and hide the tooltip
+    // ==============================
+    circlesGroup.on("mouseover", function(data) {
+      toolTip.show(data, this);
+    })
+      // onmouseout event
+      .on("mouseout", function(data, index) {
+        toolTip.hide(data);
+      });
+
+    // Create axes labels
+    chartGroup.append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 0 - margin.left + 10)
+      .attr("x", 0 - (chartHeight / 2))
+      .attr("dy", "5px")
+      .attr("class", "axisText")
+      .text("Lacks Healthcare (%)");
+
+    chartGroup.append("text")
+      .attr("transform", `translate(${chartWidth / 2}, ${chartHeight + margin.top - 5})`)
+      .attr("class", "axisText")
+      .text("In Poverty (%)");
+    //add abbr inside circle
+    
+    chartGroup.selectAll().data(csvdata).enter().append("text").text(function(d){
+      return d.abbr;
+    })
+    .attr("x",d => xLinearScale(d.poverty))
+    .attr("y", d => yLinearScale(d.healthcare))
+    .attr("text-anchor", "middle")
+    .attr('fill', 'white')
+    .attr('font-size', 10);
+
+    
+});
 
